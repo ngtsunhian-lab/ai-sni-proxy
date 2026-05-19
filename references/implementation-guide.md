@@ -63,6 +63,7 @@ ab.chatgpt.com
 auth0.openai.com
 oaisidekickupdates.blob.core.windows.net
 anthropic.com
+platform.claude.com
 api.anthropic.com
 a-api.anthropic.com
 claude.ai
@@ -242,6 +243,7 @@ claude.ai
 claude.com
 a.claude.ai
 assets.claude.ai
+platform.claude.com
 api.anthropic.com
 a-api.anthropic.com
 assets-proxy.anthropic.com

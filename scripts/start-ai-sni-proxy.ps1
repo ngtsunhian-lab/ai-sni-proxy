@@ -29,6 +29,7 @@ $Entries = @(
     "127.0.0.1 auth0.openai.com $Marker",
     "127.0.0.1 oaisidekickupdates.blob.core.windows.net $Marker",
     "127.0.0.1 anthropic.com $Marker",
+    "127.0.0.1 platform.claude.com $Marker",
     "127.0.0.1 api.anthropic.com $Marker",
     "127.0.0.1 a-api.anthropic.com $Marker",
     "127.0.0.1 claude.ai $Marker",

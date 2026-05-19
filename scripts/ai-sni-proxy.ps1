@@ -49,6 +49,10 @@ function Show-Status {
         Select-Object -First 1 -ExpandProperty IPAddress
     Write-Host "  api.anthropic.com resolves to: $anthropicDns"
 
+    $claudePlatformDns = Resolve-DnsName platform.claude.com -Type A -ErrorAction SilentlyContinue |
+        Select-Object -First 1 -ExpandProperty IPAddress
+    Write-Host "  platform.claude.com resolves to: $claudePlatformDns"
+
     $proc = Get-CimInstance Win32_Process |
         Where-Object { $_.CommandLine -and $_.CommandLine -like "*sni_proxy.py*" } |
         Select-Object -First 1
@@ -85,6 +89,10 @@ function Show-Status {
 function Invoke-Tests {
     Write-Host "Testing Anthropic through local SNI proxy..." -ForegroundColor Cyan
     curl.exe -sk --noproxy "*" -D - --connect-timeout 20 https://api.anthropic.com/v1/models -o NUL
+
+    Write-Host ""
+    Write-Host "Testing Claude OAuth through local SNI proxy..." -ForegroundColor Cyan
+    curl.exe -sk --noproxy "*" -D - --connect-timeout 20 -X POST https://platform.claude.com/v1/oauth/token -o NUL
 
     Write-Host ""
     Write-Host "Testing ChatGPT through local SNI proxy..." -ForegroundColor Cyan

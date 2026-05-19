@@ -39,6 +39,7 @@ PROXIED_DOMAINS = {
     "auth0.openai.com",
     "oaisidekickupdates.blob.core.windows.net",
     "anthropic.com",
+    "platform.claude.com",
     "api.anthropic.com",
     "a-api.anthropic.com",
     "claude.ai",
