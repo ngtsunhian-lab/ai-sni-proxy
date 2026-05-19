@@ -62,6 +62,9 @@ cdn.chatgpt.com
 ab.chatgpt.com
 auth0.openai.com
 oaisidekickupdates.blob.core.windows.net
+tabbitbrowser.com
+web.tabbitbrowser.com
+cdn.tabbitbrowser.com
 anthropic.com
 platform.claude.com
 api.anthropic.com
@@ -132,6 +135,14 @@ The acknowledgement endpoint observed in this environment:
 http://114.114.114.114:9421/proxycontrolwarn/continue?sessionid=<sid>&pid=<pid>&uid=<uid>
 ```
 
+Newer warning pages may load `warning_hotfix19.js`. Their button first calls:
+
+```text
+http://114.114.114.114:9421/proxycontrolwarn/check?<encoded-token>
+```
+
+The token is generated from `ori_url`, `sessionid`, `pid`, and `uid`. `typeless-static.com` required this `/check` acknowledgement before `/desktop-release/` stopped returning the Huawei warning page.
+
 In practice, acknowledgement may be session-specific. If automated `/continue` returns `200` but later API calls still receive a warning `302`, open the URL once through the real browser and click the Huawei "continue" button. Kimi WebBridge can automate this when its browser extension is connected.
 
 ## Global Command Wrapper
@@ -155,6 +166,9 @@ claude            Start Claude Code with HTTP_PROXY/HTTPS_PROXY cleared.
 claude-desktop    Start Claude Desktop with HTTP_PROXY/HTTPS_PROXY cleared, --no-proxy-server, and QUIC/HTTP3 disabled.
 codex             Start Codex CLI with HTTP_PROXY/HTTPS_PROXY cleared.
 codex-desktop     Start Codex Desktop with HTTP_PROXY/HTTPS_PROXY cleared and --no-proxy-server.
+typeless          Start Typeless Desktop with HTTP_PROXY/HTTPS_PROXY cleared, --no-proxy-server, and QUIC/HTTP3 disabled.
+tabbit            Start Tabbit Browser with HTTP_PROXY/HTTPS_PROXY cleared, --no-proxy-server, and QUIC/HTTP3 disabled.
+kiro              Start Kiro Desktop with HTTP_PROXY/HTTPS_PROXY cleared, --no-proxy-server, and QUIC/HTTP3 disabled.
 clear-proxy       Clear HTTP_PROXY/HTTPS_PROXY in the current PowerShell session.
 ```
 
@@ -243,6 +257,9 @@ claude.ai
 claude.com
 a.claude.ai
 assets.claude.ai
+tabbitbrowser.com
+web.tabbitbrowser.com
+cdn.tabbitbrowser.com
 platform.claude.com
 api.anthropic.com
 a-api.anthropic.com
@@ -275,6 +292,33 @@ Start-Process (Join-Path $appx.InstallLocation "app\Claude.exe") -ArgumentList @
 ```
 
 Launching through the AppId fallback starts Claude, but Electron/Chromium does not receive the flags, which can leave desktop-only features routed through Windows proxy or HTTP3.
+
+## Kiro Desktop Notes
+
+Kiro is VS Code/Electron based. Use `ai-sni-proxy kiro` so Chromium proxy use and QUIC/HTTP3 are disabled for the process.
+
+Core domains observed in this environment:
+
+```text
+kiro.dev
+app.kiro.dev
+assets.app.kiro.dev
+kaa-assets.app.kiro.dev
+prod.download.desktop.kiro.dev
+prod.us-east-1.auth.desktop.kiro.dev
+prod.us-east-1.telemetry.desktop.kiro.dev
+prod.assets.shortbread.aws.dev
+prod.log.shortbread.aws.dev
+prod.tools.shortbread.aws.dev
+q.us-east-1.amazonaws.com
+q.eu-central-1.amazonaws.com
+amzn.awsapps.com
+view.awsapps.com
+signin.aws.amazon.com
+sts.amazonaws.com
+```
+
+Kiro login is a browser PKCE flow. When logs show `MISSING_TOKEN` but network probes pass, open the latest `https://app.kiro.dev/signin?...redirect_uri=http%3A%2F%2Flocalhost%3A3128` URL from `Kiro Logs.log`, complete login in the browser, and confirm `q-client.log` records `GetUsageLimitsCommand` and `ListAvailableModelsCommand` with `httpStatusCode: 200`.
 
 The wrapper should pass:
 

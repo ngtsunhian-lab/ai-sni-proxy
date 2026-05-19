@@ -31,6 +31,9 @@ When asked to set up or debug this route:
 4. Never assume `stop` means "all AI access is blocked." Check `HTTP_PROXY`, `HTTPS_PROXY`, WinHTTP, and Windows user proxy. Desktop Chromium clients may use Windows system proxy unless launched with `--no-proxy-server`.
 5. For Codex Desktop and Claude Desktop, fully quit existing processes before testing a changed proxy launch path. Existing Electron processes keep their original network/proxy state.
 6. For Claude Desktop, make sure the route includes Claude API, static asset, and Cloudflare Turnstile domains, and launch with QUIC/HTTP3 disabled.
+7. For Typeless Desktop, include `api.typeless.com` and `typeless-static.com`, and use the newer Huawei `/proxycontrolwarn/check` acknowledgement when static downloads still return warning pages.
+8. For Kiro Desktop, include Kiro login/update/auth/telemetry domains plus Amazon Q runtime domains, then launch with Chromium proxy disabled.
+9. For Tabbit Browser AI features, include `web.tabbitbrowser.com` and `cdn.tabbitbrowser.com`, acknowledge the Huawei warning on `/sidebar`, and launch with Chromium proxy disabled.
 
 ## Canonical Commands
 
@@ -47,6 +50,9 @@ ai-sni-proxy codex
 ai-sni-proxy codex-desktop
 ai-sni-proxy claude
 ai-sni-proxy claude-desktop
+ai-sni-proxy typeless
+ai-sni-proxy tabbit
+ai-sni-proxy kiro
 ```
 
 Check or test:
@@ -71,6 +77,9 @@ Through the local SNI route, unauthenticated API probes should return product-or
 ```text
 https://api.anthropic.com/v1/models -> HTTP/1.1 401 Unauthorized, x-api-key header is required
 https://api.openai.com/v1/models    -> HTTP/1.1 401 Unauthorized, Bearer realm="OpenAI API"
+https://api.typeless.com/           -> HTTP/1.1 200 OK
+https://web.tabbitbrowser.com/sidebar -> HTTP/1.1 200 OK
+https://app.kiro.dev/               -> HTTP/1.1 200 OK
 ```
 
 If the response is `302 Location: http://114.114.114.114:9421/proxycontrolwarn/...`, the Huawei AI warning is not acknowledged for that session/path yet.

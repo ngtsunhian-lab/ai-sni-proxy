@@ -1,6 +1,6 @@
 param(
     [Parameter(Position = 0)]
-    [ValidateSet("start", "stop", "restart", "status", "test", "logs", "claude", "claude-desktop", "codex", "codex-desktop", "clear-proxy", "help")]
+    [ValidateSet("start", "stop", "restart", "status", "test", "logs", "claude", "claude-desktop", "codex", "codex-desktop", "typeless", "tabbit", "kiro", "clear-proxy", "help")]
     [string]$Command = "help",
 
     [Parameter(ValueFromRemainingArguments = $true)]
@@ -28,6 +28,9 @@ function Show-Help {
     Write-Host "  ai-sni-proxy claude-desktop"
     Write-Host "  ai-sni-proxy codex [codex args...]"
     Write-Host "  ai-sni-proxy codex-desktop"
+    Write-Host "  ai-sni-proxy typeless"
+    Write-Host "  ai-sni-proxy tabbit"
+    Write-Host "  ai-sni-proxy kiro"
     Write-Host "  ai-sni-proxy clear-proxy"
 }
 
@@ -219,6 +222,114 @@ function Start-CodexDesktopThroughSni {
     Start-Process -FilePath $codexDesktop -ArgumentList "--no-proxy-server"
 }
 
+function Start-TypelessThroughSni {
+    $env:HTTP_PROXY = ""
+    $env:HTTPS_PROXY = ""
+    $env:http_proxy = ""
+    $env:https_proxy = ""
+    $env:NO_PROXY = "*"
+    $env:no_proxy = "*"
+
+    $chromiumArgs = @(
+        "--no-proxy-server",
+        "--disable-quic",
+        "--disable-http3",
+        "--disable-features=UseDnsHttpsSvcbAlpn"
+    )
+
+    $candidates = @(
+        "$env:LOCALAPPDATA\Programs\Typeless\Typeless.exe",
+        "$env:LOCALAPPDATA\Typeless\Typeless.exe",
+        "$env:PROGRAMFILES\Typeless\Typeless.exe",
+        "${env:PROGRAMFILES(X86)}\Typeless\Typeless.exe"
+    )
+
+    $typeless = $candidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+    if (-not $typeless) {
+        Write-Host "Typeless Desktop not found." -ForegroundColor Red
+        Write-Host "Searched:" -ForegroundColor Yellow
+        $candidates | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
+        return
+    }
+
+    Write-Host "Starting Typeless Desktop through the local SNI route only..." -ForegroundColor Cyan
+    Write-Host "HTTP_PROXY/HTTPS_PROXY will be cleared for this Typeless process." -ForegroundColor Cyan
+    Write-Host "Chromium system proxy and QUIC/HTTP3 will be disabled." -ForegroundColor Cyan
+    Start-Process -FilePath $typeless -ArgumentList $chromiumArgs
+}
+
+function Start-TabbitThroughSni {
+    $env:HTTP_PROXY = ""
+    $env:HTTPS_PROXY = ""
+    $env:http_proxy = ""
+    $env:https_proxy = ""
+    $env:NO_PROXY = "*"
+    $env:no_proxy = "*"
+
+    $chromiumArgs = @(
+        "--no-proxy-server",
+        "--disable-quic",
+        "--disable-http3",
+        "--disable-features=UseDnsHttpsSvcbAlpn"
+    )
+
+    $candidates = @(
+        "$env:LOCALAPPDATA\Tabbit\Application\Tabbit.exe",
+        "$env:LOCALAPPDATA\Programs\Tabbit\Tabbit.exe",
+        "$env:PROGRAMFILES\Tabbit\Tabbit.exe",
+        "${env:PROGRAMFILES(X86)}\Tabbit\Tabbit.exe"
+    )
+    $tabbit = $candidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+    if (-not $tabbit) {
+        Write-Host "Tabbit Browser not found." -ForegroundColor Red
+        Write-Host "Searched:" -ForegroundColor Yellow
+        $candidates | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
+        return
+    }
+
+    Write-Host "Starting Tabbit Browser through the local SNI route only..." -ForegroundColor Cyan
+    Write-Host "HTTP_PROXY/HTTPS_PROXY will be cleared for this Tabbit process." -ForegroundColor Cyan
+    Write-Host "Chromium system proxy and QUIC/HTTP3 will be disabled." -ForegroundColor Cyan
+    Start-Process -FilePath $tabbit -ArgumentList $chromiumArgs
+}
+
+function Start-KiroThroughSni {
+    $env:HTTP_PROXY = ""
+    $env:HTTPS_PROXY = ""
+    $env:http_proxy = ""
+    $env:https_proxy = ""
+    $env:NO_PROXY = "*"
+    $env:no_proxy = "*"
+    $env:NODE_TLS_REJECT_UNAUTHORIZED = "0"
+
+    $chromiumArgs = @(
+        "--no-proxy-server",
+        "--disable-quic",
+        "--disable-http3",
+        "--disable-features=UseDnsHttpsSvcbAlpn"
+    )
+
+    $candidates = @(
+        "D:\Program Files\Kiro\Kiro.exe",
+        "$env:LOCALAPPDATA\Programs\Kiro\Kiro.exe",
+        "$env:LOCALAPPDATA\Kiro\Kiro.exe",
+        "$env:PROGRAMFILES\Kiro\Kiro.exe",
+        "${env:PROGRAMFILES(X86)}\Kiro\Kiro.exe"
+    )
+    $kiro = $candidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+    if (-not $kiro) {
+        Write-Host "Kiro Desktop not found." -ForegroundColor Red
+        Write-Host "Searched:" -ForegroundColor Yellow
+        $candidates | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
+        return
+    }
+
+    Write-Host "Starting Kiro Desktop through the local SNI route only..." -ForegroundColor Cyan
+    Write-Host "HTTP_PROXY/HTTPS_PROXY will be cleared for this Kiro process." -ForegroundColor Cyan
+    Write-Host "Chromium system proxy and QUIC/HTTP3 will be disabled." -ForegroundColor Cyan
+    Start-Process -FilePath $kiro -ArgumentList $chromiumArgs
+}
+
 function Clear-CurrentShellProxy {
     Remove-Item Env:HTTP_PROXY -ErrorAction SilentlyContinue
     Remove-Item Env:HTTPS_PROXY -ErrorAction SilentlyContinue
@@ -265,6 +376,15 @@ switch ($Command) {
     }
     "codex-desktop" {
         Start-CodexDesktopThroughSni
+    }
+    "typeless" {
+        Start-TypelessThroughSni
+    }
+    "tabbit" {
+        Start-TabbitThroughSni
+    }
+    "kiro" {
+        Start-KiroThroughSni
     }
     "clear-proxy" {
         Clear-CurrentShellProxy
