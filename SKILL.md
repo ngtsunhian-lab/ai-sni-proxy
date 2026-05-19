@@ -58,10 +58,13 @@ ai-sni-proxy kiro
 Check or test:
 
 ```powershell
+ai-sni-proxy ensure
 ai-sni-proxy status
 ai-sni-proxy test
 ai-sni-proxy logs
 ```
+
+Use `ai-sni-proxy ensure` when the route may have gone stale: it checks the listener, critical DNS mappings, and an Anthropic HTTPS probe, then restarts the route only if the health check fails.
 
 Stop and clear shell proxy variables:
 

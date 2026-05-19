@@ -1,6 +1,6 @@
 param(
     [Parameter(Position = 0)]
-    [ValidateSet("start", "stop", "restart", "status", "test", "logs", "claude", "claude-desktop", "codex", "codex-desktop", "typeless", "tabbit", "kiro", "clear-proxy", "help")]
+    [ValidateSet("start", "stop", "restart", "ensure", "status", "test", "logs", "claude", "claude-desktop", "codex", "codex-desktop", "typeless", "tabbit", "kiro", "clear-proxy", "help")]
     [string]$Command = "help",
 
     [Parameter(ValueFromRemainingArguments = $true)]
@@ -21,6 +21,7 @@ function Show-Help {
     Write-Host "  ai-sni-proxy start [-SkipKimiAck]"
     Write-Host "  ai-sni-proxy stop"
     Write-Host "  ai-sni-proxy restart [-SkipKimiAck]"
+    Write-Host "  ai-sni-proxy ensure [-SkipKimiAck]"
     Write-Host "  ai-sni-proxy status"
     Write-Host "  ai-sni-proxy test"
     Write-Host "  ai-sni-proxy logs"
@@ -100,6 +101,74 @@ function Invoke-Tests {
     Write-Host ""
     Write-Host "Testing ChatGPT through local SNI proxy..." -ForegroundColor Cyan
     curl.exe -sk --noproxy "*" -D - --connect-timeout 20 https://chatgpt.com/ -o NUL
+}
+
+function Test-SniProxyHealth {
+    param([switch]$Quiet)
+
+    $healthy = $true
+    $listener = Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 443 -State Listen -ErrorAction SilentlyContinue
+    if ($listener) {
+        if (-not $Quiet) { Write-Host "  Listener: up" -ForegroundColor Green }
+    } else {
+        if (-not $Quiet) { Write-Host "  Listener: not running" -ForegroundColor Red }
+        $healthy = $false
+    }
+
+    $anthropicDns = Resolve-DnsName api.anthropic.com -Type A -ErrorAction SilentlyContinue |
+        Select-Object -First 1 -ExpandProperty IPAddress
+    if ($anthropicDns -eq "127.0.0.1") {
+        if (-not $Quiet) { Write-Host "  api.anthropic.com DNS: 127.0.0.1" -ForegroundColor Green }
+    } else {
+        if (-not $Quiet) { Write-Host "  api.anthropic.com DNS: $anthropicDns" -ForegroundColor Red }
+        $healthy = $false
+    }
+
+    $claudePlatformDns = Resolve-DnsName platform.claude.com -Type A -ErrorAction SilentlyContinue |
+        Select-Object -First 1 -ExpandProperty IPAddress
+    if ($claudePlatformDns -eq "127.0.0.1") {
+        if (-not $Quiet) { Write-Host "  platform.claude.com DNS: 127.0.0.1" -ForegroundColor Green }
+    } else {
+        if (-not $Quiet) { Write-Host "  platform.claude.com DNS: $claudePlatformDns" -ForegroundColor Red }
+        $healthy = $false
+    }
+
+    if ($listener -and $anthropicDns -eq "127.0.0.1") {
+        $headers = & curl.exe -sk --noproxy "*" -D - --connect-timeout 10 --max-time 25 https://api.anthropic.com/v1/models -o NUL 2>&1
+        $curlExit = $LASTEXITCODE
+        $statusLine = ($headers | Select-String -Pattern "^HTTP/" | Select-Object -Last 1).Line
+        if ($curlExit -eq 0 -and $statusLine -match " 401 ") {
+            if (-not $Quiet) { Write-Host "  Anthropic probe: $statusLine" -ForegroundColor Green }
+        } else {
+            if (-not $Quiet) {
+                Write-Host "  Anthropic probe failed: curl exit $curlExit, status '$statusLine'" -ForegroundColor Red
+            }
+            $healthy = $false
+        }
+    }
+
+    return $healthy
+}
+
+function Ensure-SniProxy {
+    Write-Host "Checking local SNI proxy health..." -ForegroundColor Cyan
+    if (Test-SniProxyHealth) {
+        Write-Host "SNI proxy is healthy. No restart needed." -ForegroundColor Green
+        return
+    }
+
+    Write-Host "SNI proxy health check failed. Restarting route..." -ForegroundColor Yellow
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $stopScript
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $startScript @Rest
+
+    Start-Sleep -Seconds 3
+    Write-Host "Rechecking local SNI proxy health..." -ForegroundColor Cyan
+    if (Test-SniProxyHealth) {
+        Write-Host "SNI proxy recovered." -ForegroundColor Green
+    } else {
+        Write-Host "SNI proxy still looks unhealthy. Run 'ai-sni-proxy logs' for details." -ForegroundColor Red
+        exit 1
+    }
 }
 
 function Start-ClaudeThroughSni {
@@ -351,6 +420,9 @@ switch ($Command) {
     "restart" {
         & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $stopScript
         & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $startScript @Rest
+    }
+    "ensure" {
+        Ensure-SniProxy
     }
     "status" {
         Show-Status

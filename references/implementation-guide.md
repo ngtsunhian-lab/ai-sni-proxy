@@ -194,6 +194,7 @@ AI clients may still work through other routes:
 Check all routes:
 
 ```powershell
+ai-sni-proxy ensure
 ai-sni-proxy status
 Get-ChildItem Env: | Where-Object { $_.Name -match 'proxy|ANTHROPIC|OPENAI' }
 netsh winhttp show proxy
@@ -387,8 +388,9 @@ If Anthropic/OpenAI returns a Huawei `302` warning URL, refresh acknowledgement 
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| `127.0.0.1:443 not running` | Proxy process not started or failed | `ai-sni-proxy logs`, then `ai-sni-proxy start` |
-| Hosts entries are 0 | Route is stopped | `ai-sni-proxy start` |
+| Route may have gone stale | Listener, hosts, or upstream CONNECT probe failed | `ai-sni-proxy ensure` |
+| `127.0.0.1:443 not running` | Proxy process not started or failed | `ai-sni-proxy logs`, then `ai-sni-proxy ensure` |
+| Hosts entries are 0 | Route is stopped | `ai-sni-proxy ensure` |
 | `api.anthropic.com` resolves to public IP | Hosts not active | Run start as admin; flush DNS |
 | Client works after `stop` | It is using shell or Windows proxy | Check `ai-sni-proxy status`; run `clear-proxy`; check Windows proxy |
 | `codex-desktop` works after `stop` | Existing process or Windows system proxy | Quit all `Codex.exe`; launch with `ai-sni-proxy codex-desktop` |
