@@ -125,6 +125,12 @@ function Start-ClaudeDesktopThroughSni {
     $env:NO_PROXY = "*"
     $env:no_proxy = "*"
     $env:NODE_TLS_REJECT_UNAUTHORIZED = "0"
+    $chromiumArgs = @(
+        "--no-proxy-server",
+        "--disable-quic",
+        "--disable-http3",
+        "--disable-features=UseDnsHttpsSvcbAlpn"
+    )
 
     $candidates = @(
         "$env:LOCALAPPDATA\AnthropicClaude\claude.exe",
@@ -135,22 +141,35 @@ function Start-ClaudeDesktopThroughSni {
     )
     $claudeDesktop = $candidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
 
+    $appx = Get-AppxPackage -Name "Claude" -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $appx) {
+        $appx = Get-AppxPackage -Name "*AnthropicClaude*" -ErrorAction SilentlyContinue | Select-Object -First 1
+    }
+    if (-not $claudeDesktop -and $appx -and $appx.InstallLocation) {
+        $candidate = Join-Path $appx.InstallLocation "app\Claude.exe"
+        if (Test-Path -LiteralPath $candidate) {
+            $claudeDesktop = $candidate
+        }
+    }
+
     if (-not $claudeDesktop) {
-        Write-Host "Claude Desktop not found. Download from https://claude.ai/download" -ForegroundColor Red
-        Write-Host "Searched:" -ForegroundColor Yellow
-        $candidates | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
+        if ($appx) {
+            $appId = "$($appx.PackageFamilyName)!App"
+            Write-Host "Could not resolve Claude.exe directly. Falling back to AppID: $appId" -ForegroundColor Yellow
+            Write-Host "Warning: AppID fallback cannot pass Chromium flags." -ForegroundColor Yellow
+            Start-Process -FilePath "explorer.exe" -ArgumentList "shell:AppsFolder\$appId"
+        } else {
+            Write-Host "Claude Desktop not found. Download from https://claude.ai/download" -ForegroundColor Red
+            Write-Host "Searched:" -ForegroundColor Yellow
+            $candidates | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
+        }
         return
     }
 
     Write-Host "Starting Claude Desktop through the local SNI route only..." -ForegroundColor Cyan
     Write-Host "HTTP_PROXY/HTTPS_PROXY will be cleared for this Claude Desktop process." -ForegroundColor Cyan
     Write-Host "Chromium system proxy and QUIC/HTTP3 will be disabled." -ForegroundColor Cyan
-    Start-Process -FilePath $claudeDesktop -ArgumentList @(
-        "--no-proxy-server",
-        "--disable-quic",
-        "--disable-http3",
-        "--disable-features=UseDnsHttpsSvcbAlpn"
-    )
+    Start-Process -FilePath $claudeDesktop -ArgumentList $chromiumArgs
 }
 
 function Start-CodexDesktopThroughSni {

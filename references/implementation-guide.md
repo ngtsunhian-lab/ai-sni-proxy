@@ -260,6 +260,20 @@ Get-Process claude -ErrorAction SilentlyContinue | Stop-Process -Force
 ai-sni-proxy claude-desktop
 ```
 
+For MSIX/AppX installs, do not launch only through `shell:AppsFolder\<AppId>` unless direct executable resolution fails. Resolve the installed package first and prefer:
+
+```powershell
+$appx = Get-AppxPackage -Name Claude
+Start-Process (Join-Path $appx.InstallLocation "app\Claude.exe") -ArgumentList @(
+  "--no-proxy-server",
+  "--disable-quic",
+  "--disable-http3",
+  "--disable-features=UseDnsHttpsSvcbAlpn"
+)
+```
+
+Launching through the AppId fallback starts Claude, but Electron/Chromium does not receive the flags, which can leave desktop-only features routed through Windows proxy or HTTP3.
+
 The wrapper should pass:
 
 ```text
