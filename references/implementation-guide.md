@@ -218,6 +218,8 @@ To force it onto the local SNI route:
    ai-sni-proxy codex-desktop
    ```
 
+`ai-sni-proxy start` performs the same health check as `ai-sni-proxy ensure`; it repairs the route only when the listener, DNS mapping, or upstream probe fails. Use `ai-sni-proxy restart` for a forced stop/start.
+
 The wrapper starts Codex Desktop with:
 
 ```text

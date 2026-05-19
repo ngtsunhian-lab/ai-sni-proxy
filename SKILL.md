@@ -43,6 +43,8 @@ Start the route:
 ai-sni-proxy start
 ```
 
+`start` is health-check aware: it verifies the listener, critical DNS mappings, and an Anthropic HTTPS probe first, then repairs the route only if needed. Use `ai-sni-proxy restart` when you explicitly need a forced stop/start.
+
 Start clients through the local route only:
 
 ```powershell
@@ -64,7 +66,7 @@ ai-sni-proxy test
 ai-sni-proxy logs
 ```
 
-Use `ai-sni-proxy ensure` when the route may have gone stale: it checks the listener, critical DNS mappings, and an Anthropic HTTPS probe, then restarts the route only if the health check fails.
+Use `ai-sni-proxy ensure` as an explicit alias for the same health check used by `start`.
 
 Stop and clear shell proxy variables:
 

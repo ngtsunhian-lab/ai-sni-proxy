@@ -18,9 +18,9 @@ $hostsFile = "$env:SystemRoot\System32\drivers\etc\hosts"
 
 function Show-Help {
     Write-Host "Usage:" -ForegroundColor Cyan
-    Write-Host "  ai-sni-proxy start [-SkipKimiAck]"
+    Write-Host "  ai-sni-proxy start [-SkipKimiAck]    # health-check first; repair only if needed"
     Write-Host "  ai-sni-proxy stop"
-    Write-Host "  ai-sni-proxy restart [-SkipKimiAck]"
+    Write-Host "  ai-sni-proxy restart [-SkipKimiAck]  # force stop/start"
     Write-Host "  ai-sni-proxy ensure [-SkipKimiAck]"
     Write-Host "  ai-sni-proxy status"
     Write-Host "  ai-sni-proxy test"
@@ -412,7 +412,7 @@ function Clear-CurrentShellProxy {
 
 switch ($Command) {
     "start" {
-        & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $startScript @Rest
+        Ensure-SniProxy
     }
     "stop" {
         & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $stopScript
