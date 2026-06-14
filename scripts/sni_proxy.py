@@ -6,6 +6,8 @@ Configure with environment variables:
   AI_SNI_PROXY_PORT=8080
   AI_SNI_PROXY_USER=<user>
   AI_SNI_PROXY_PASS=<password-or-token>
+  AI_SNI_PROXY_TUNNELS=host=port,host2=port2   (optional; route these SNIs through a
+                                                local SSH tunnel instead of the proxy)
 
 This template intentionally does not contain real credentials.
 """
@@ -77,8 +79,33 @@ PROXIED_DOMAINS = {
 }
 
 
+# Domains routed through a local SSH tunnel instead of the corporate CONNECT path.
+#
+# Some corporate gateways MITM the CONNECT(443) tunnel and block the WebSocket
+# upgrade (e.g. returning HTTP 403 on `Upgrade: websocket`, which breaks streaming
+# speech/ASR). To bypass that, run an SSH tunnel to an outside VPS:
+#   ssh -L 127.0.0.1:<port>:<real-host>:443 user@vps
+# so the gateway only sees an opaque SSH stream to the VPS, and route the affected
+# SNI to that local port here. End-to-end TLS still terminates at the real server;
+# the VPS only does dumb TCP forwarding (no certificate / MITM needed).
+#
+# Configure via AI_SNI_PROXY_TUNNELS="host=port,host2=port2" (maps SNI -> local port).
+def _parse_tunnels(spec: str) -> dict[str, int]:
+    tunnels = {}
+    for item in spec.split(","):
+        host, _, port = item.strip().partition("=")
+        if host and port.isdigit():
+            tunnels[host.strip().lower()] = int(port)
+    return tunnels
+
+
+TUNNELED_DOMAINS = _parse_tunnels(os.environ.get("AI_SNI_PROXY_TUNNELS", ""))
+
+
 def should_proxy(sni: str) -> bool:
     sni = sni.lower()
+    if sni in TUNNELED_DOMAINS:
+        return True
     return any(sni == domain or sni.endswith("." + domain) for domain in PROXIED_DOMAINS)
 
 
@@ -165,8 +192,13 @@ async def handle_client(client_reader, client_writer):
             log.warning("Rejected connection from %s with SNI %r", peer, sni)
             client_writer.close()
             return
-        log.info("Proxying %s:443 for %s", sni, peer)
-        proxy_reader, proxy_writer = await connect_via_proxy(sni, 443)
+        tunnel_port = TUNNELED_DOMAINS.get(sni.lower())
+        if tunnel_port is not None:
+            log.info("Routing %s:443 through local SSH tunnel 127.0.0.1:%s for %s", sni, tunnel_port, peer)
+            proxy_reader, proxy_writer = await asyncio.open_connection("127.0.0.1", tunnel_port)
+        else:
+            log.info("Proxying %s:443 for %s", sni, peer)
+            proxy_reader, proxy_writer = await connect_via_proxy(sni, 443)
         proxy_writer.write(initial)
         await proxy_writer.drain()
         await asyncio.gather(

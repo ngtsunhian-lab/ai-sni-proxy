@@ -35,6 +35,33 @@ When asked to set up or debug this route:
 8. For Kiro Desktop, include Kiro login/update/auth/telemetry domains plus Amazon Q runtime domains, then launch with Chromium proxy disabled.
 9. For Tabbit Browser AI features, include `web.tabbitbrowser.com` and `cdn.tabbitbrowser.com`, acknowledge the Huawei warning on `/sidebar`, and launch with Chromium proxy disabled.
 
+## WebSocket-Blocked Domains (SSH Tunnel)
+
+Some Huawei gateways MITM the `CONNECT 443` tunnel and reject the WebSocket upgrade
+(HTTP `403` on `Upgrade: websocket`), which breaks streaming speech/ASR even though
+plain HTTPS on the same domain works. The CONNECT path cannot recover from this — the
+gateway sees the `Upgrade` header inside the decrypted tunnel.
+
+Bypass: carry those connections inside an SSH stream to an outside VPS instead of the
+Huawei CONNECT path. Run a supervised tunnel that maps the real host to a local port:
+
+```bash
+ssh -L 127.0.0.1:7443:speech-asr.example.com:443 user@vps
+```
+
+Then tell the proxy to route that SNI to the local tunnel port instead of the corporate
+proxy:
+
+```powershell
+$env:AI_SNI_PROXY_TUNNELS = "speech-asr.example.com=7443"
+```
+
+`sni_proxy.py` reads `AI_SNI_PROXY_TUNNELS` (`host=port,host2=port2`) and, for a matching
+SNI, connects to `127.0.0.1:<port>` rather than issuing `CONNECT`. The gateway only sees
+an opaque SSH stream to the VPS, so it cannot inspect or block the upgrade. End-to-end TLS
+still terminates at the real server; the VPS only does dumb TCP forwarding (no certificate
+or MITM needed). Verify the tunnel is live with `Test-NetConnection 127.0.0.1 -Port 7443`.
+
 ## Canonical Commands
 
 Start the route:
