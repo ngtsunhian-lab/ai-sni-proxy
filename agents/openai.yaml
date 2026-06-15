@@ -1,3 +1,0 @@
-display_name: AI SNI Proxy
-short_description: Route AI clients via local SNI proxy.
-default_prompt: Help configure, start, stop, test, or troubleshoot the local AI SNI proxy route for Codex, Claude, OpenAI, and Anthropic behind Huawei corporate proxy.
