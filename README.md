@@ -1,5 +1,7 @@
 # ai-sni-proxy
 
+[![Repo](https://img.shields.io/badge/GitHub-ngtsunhian--lab%2Fai--sni--proxy-181717?logo=github)](https://github.com/ngtsunhian-lab/ai-sni-proxy)
+
 A local SNI/TLS proxy that lets desktop AI clients (Codex, Claude, ChatGPT, Typeless,
 Tabbit, Kiro, ...) reach their APIs from behind an HTTP corporate proxy that MITMs or
 gates direct access to AI domains.
