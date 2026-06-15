@@ -1,6 +1,7 @@
 # ai-sni-proxy
 
 [![Repo](https://img.shields.io/badge/GitHub-ngtsunhian--lab%2Fai--sni--proxy-181717?logo=github)](https://github.com/ngtsunhian-lab/ai-sni-proxy)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 A local SNI/TLS proxy that lets desktop AI clients (Codex, Claude, ChatGPT, Typeless,
 Tabbit, Kiro, ...) reach their APIs from behind an HTTP corporate proxy that MITMs or
@@ -106,3 +107,7 @@ SNI, connects to `127.0.0.1:<port>` instead of issuing `CONNECT`. The gateway on
 opaque SSH stream to the VPS, so it cannot inspect or block the upgrade. End-to-end TLS
 still terminates at the real server; the VPS only does dumb TCP forwarding (no certificate
 or MITM needed).
+
+## License
+
+[MIT](LICENSE)
