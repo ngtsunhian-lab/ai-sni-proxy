@@ -285,11 +285,15 @@ function Start-CodexDesktopThroughSni {
         return
     }
 
-    # --no-sandbox: AppX exe launched directly lacks AppContainer token → sandbox init fails.
-    # This suppresses the "无法设置管理员沙盒" warning. Safe for a desktop app.
+    # Ensure Codex sandbox is set up (requires admin; silences "无法设置管理员沙盒" dialog).
+    $sandboxSetup = Join-Path $env:LOCALAPPDATA "OpenAI\Codex\bin\codex-windows-sandbox-setup.exe"
+    if (Test-Path $sandboxSetup) {
+        Start-Process -FilePath $sandboxSetup -Verb RunAs -Wait
+    }
+
     # host-resolver-rules: force Chromium renderer to use hosts file DNS instead of HTTPDNS/DoH.
     # Without this, the renderer bypasses hosts and resolves to real IPs → ConnectionRefused.
-    $argString = '--no-sandbox --no-proxy-server --disable-quic --disable-http3 --disable-features=UseDnsHttpsSvcbAlpn,DnsOverHttpsUpgrade,BlockInsecurePrivateNetworkRequests,PrivateNetworkAccessSendPreflights,PrivateNetworkAccessRespectPreflightResults,LocalNetworkAccessChecks "--host-resolver-rules=MAP chatgpt.com 127.0.0.1, MAP openai.com 127.0.0.1, MAP api.openai.com 127.0.0.1, MAP api2.openai.com 127.0.0.1, MAP cdn.oaistatic.com 127.0.0.1, MAP oaistatic.com 127.0.0.1, MAP cdn.chatgpt.com 127.0.0.1, MAP ab.chatgpt.com 127.0.0.1, MAP auth0.openai.com 127.0.0.1, MAP oaisidekickupdates.blob.core.windows.net 127.0.0.1, MAP github.com 127.0.0.1, MAP api.github.com 127.0.0.1, MAP codeload.github.com 127.0.0.1, MAP github.githubassets.com 127.0.0.1, MAP raw.githubusercontent.com 127.0.0.1, MAP objects.githubusercontent.com 127.0.0.1, MAP objects-origin.githubusercontent.com 127.0.0.1, MAP release-assets.githubusercontent.com 127.0.0.1, MAP registry.npmjs.org 127.0.0.1"'
+    $argString = '--no-proxy-server --disable-quic --disable-http3 --disable-features=UseDnsHttpsSvcbAlpn,DnsOverHttpsUpgrade,BlockInsecurePrivateNetworkRequests,PrivateNetworkAccessSendPreflights,PrivateNetworkAccessRespectPreflightResults,LocalNetworkAccessChecks "--host-resolver-rules=MAP chatgpt.com 127.0.0.1, MAP openai.com 127.0.0.1, MAP api.openai.com 127.0.0.1, MAP api2.openai.com 127.0.0.1, MAP cdn.oaistatic.com 127.0.0.1, MAP oaistatic.com 127.0.0.1, MAP cdn.chatgpt.com 127.0.0.1, MAP ab.chatgpt.com 127.0.0.1, MAP auth0.openai.com 127.0.0.1, MAP oaisidekickupdates.blob.core.windows.net 127.0.0.1, MAP github.com 127.0.0.1, MAP api.github.com 127.0.0.1, MAP codeload.github.com 127.0.0.1, MAP github.githubassets.com 127.0.0.1, MAP raw.githubusercontent.com 127.0.0.1, MAP objects.githubusercontent.com 127.0.0.1, MAP objects-origin.githubusercontent.com 127.0.0.1, MAP release-assets.githubusercontent.com 127.0.0.1, MAP registry.npmjs.org 127.0.0.1"'
 
     Write-Host "Starting Codex desktop through the local SNI route only..." -ForegroundColor Cyan
     Write-Host "HTTP_PROXY/HTTPS_PROXY will be cleared for this Codex desktop process." -ForegroundColor Cyan
