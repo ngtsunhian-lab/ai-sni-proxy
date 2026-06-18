@@ -19,20 +19,35 @@ $LogOut = Join-Path $Root "sni_proxy.out.log"
 $LogErr = Join-Path $Root "sni_proxy.err.log"
 
 $Entries = @(
+    # OpenAI / ChatGPT
     "127.0.0.1 chatgpt.com $Marker",
     "127.0.0.1 openai.com $Marker",
     "127.0.0.1 api.openai.com $Marker",
+    "127.0.0.1 api2.openai.com $Marker",
     "127.0.0.1 cdn.oaistatic.com $Marker",
     "127.0.0.1 oaistatic.com $Marker",
     "127.0.0.1 cdn.chatgpt.com $Marker",
     "127.0.0.1 ab.chatgpt.com $Marker",
     "127.0.0.1 auth0.openai.com $Marker",
     "127.0.0.1 oaisidekickupdates.blob.core.windows.net $Marker",
+    # GitHub
+    "127.0.0.1 github.com $Marker",
+    "127.0.0.1 api.github.com $Marker",
+    "127.0.0.1 codeload.github.com $Marker",
+    "127.0.0.1 github.githubassets.com $Marker",
+    "127.0.0.1 raw.githubusercontent.com $Marker",
+    "127.0.0.1 objects.githubusercontent.com $Marker",
+    "127.0.0.1 objects-origin.githubusercontent.com $Marker",
+    "127.0.0.1 release-assets.githubusercontent.com $Marker",
+    "127.0.0.1 registry.npmjs.org $Marker",
+    # Tabbit
     "127.0.0.1 tabbitbrowser.com $Marker",
     "127.0.0.1 web.tabbitbrowser.com $Marker",
     "127.0.0.1 cdn.tabbitbrowser.com $Marker",
+    # Anthropic / Claude
     "127.0.0.1 anthropic.com $Marker",
     "127.0.0.1 platform.claude.com $Marker",
+    "127.0.0.1 downloads.claude.ai $Marker",
     "127.0.0.1 api.anthropic.com $Marker",
     "127.0.0.1 a-api.anthropic.com $Marker",
     "127.0.0.1 claude.ai $Marker",
@@ -45,8 +60,10 @@ $Entries = @(
     "127.0.0.1 statsig.anthropic.com $Marker",
     "127.0.0.1 console.anthropic.com $Marker",
     "127.0.0.1 challenges.cloudflare.com $Marker",
+    # Typeless
     "127.0.0.1 api.typeless.com $Marker",
     "127.0.0.1 typeless-static.com $Marker",
+    # Kiro
     "127.0.0.1 kiro.dev $Marker",
     "127.0.0.1 app.kiro.dev $Marker",
     "127.0.0.1 prod.download.desktop.kiro.dev $Marker",
@@ -64,19 +81,59 @@ $Entries = @(
     "127.0.0.1 kaa-assets.app.kiro.dev $Marker",
     "127.0.0.1 prod.assets.shortbread.aws.dev $Marker",
     "127.0.0.1 prod.log.shortbread.aws.dev $Marker",
-    "127.0.0.1 prod.tools.shortbread.aws.dev $Marker"
+    "127.0.0.1 prod.tools.shortbread.aws.dev $Marker",
+    # Qianwen / Tongyi
+    "127.0.0.1 qianwen.com $Marker",
+    "127.0.0.1 www.qianwen.com $Marker",
+    "127.0.0.1 api.qianwen.com $Marker",
+    "127.0.0.1 aide.qianwen.com $Marker",
+    "127.0.0.1 chat2-api.qianwen.com $Marker",
+    "127.0.0.1 chat2.qianwen.com $Marker",
+    "127.0.0.1 chat-side.qianwen.com $Marker",
+    "127.0.0.1 cms-sdk-server.qianwen.com $Marker",
+    "127.0.0.1 zd.qianwen.com $Marker",
+    "127.0.0.1 speech-asr.qianwen.com $Marker",
+    "127.0.0.1 userver.upaas.qianwen.com $Marker",
+    "127.0.0.1 voice-command.qianwen.com $Marker",
+    "127.0.0.1 tongyi.aliyun.com $Marker",
+    "127.0.0.1 qianwen.aliyun.com $Marker",
+    "127.0.0.1 dashscope.aliyuncs.com $Marker",
+    "127.0.0.1 nls-gateway.aliyuncs.com $Marker",
+    "127.0.0.1 nls-gateway-cn-shanghai.aliyuncs.com $Marker",
+    "127.0.0.1 nlsapi.aliyun.com $Marker",
+    # Alibaba CDN (Qianwen app JS/CSS)
+    "127.0.0.1 g.alicdn.com $Marker",
+    "127.0.0.1 gw.alicdn.com $Marker",
+    "127.0.0.1 img.alicdn.com $Marker",
+    "127.0.0.1 assets.alicdn.com $Marker",
+    # Huawei Cloud ModelArts MaaS
+    "127.0.0.1 api-ap-southeast-1.modelarts-maas.com $Marker",
+    # OpenRouter
+    "127.0.0.1 openrouter.ai $Marker"
 )
 
 $content = Get-Content $HostsFile -Raw -Encoding UTF8
 $lines = $content -split "`n" | Where-Object { $_ -notmatch [regex]::Escape($Marker) }
 Set-Content -Path $HostsFile -Value (($lines + $Entries) -join "`n") -Encoding UTF8 -NoNewline
 ipconfig /flushdns | Out-Null
+Write-Host "Added $($Entries.Count) hosts entries and flushed DNS." -ForegroundColor Green
 
+# Stop existing sni_proxy
 Get-CimInstance Win32_Process |
     Where-Object { $_.CommandLine -and $_.CommandLine -like "*sni_proxy.py*" } |
     ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 
 Remove-Item $LogOut, $LogErr -ErrorAction SilentlyContinue
+
 $Python = if (Test-Path "D:\anaconda\python.exe") { "D:\anaconda\python.exe" } else { "python.exe" }
 Start-Process -FilePath $Python -ArgumentList "`"$ProxyScript`"" -WorkingDirectory $Root -WindowStyle Hidden -RedirectStandardOutput $LogOut -RedirectStandardError $LogErr
-Write-Host "SNI proxy start requested. Check status with ai-sni-proxy status."
+
+# Wait up to 120s for the proxy to start (self-check can be slow over VPN)
+$deadline = (Get-Date).AddSeconds(120)
+do {
+    Start-Sleep -Milliseconds 500
+    $up = Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 443 -State Listen -ErrorAction SilentlyContinue
+} while (-not $up -and (Get-Date) -lt $deadline)
+
+if ($up) { Write-Host "SNI proxy listening on 127.0.0.1:443." -ForegroundColor Green }
+else { Write-Host "SNI proxy did NOT start listening within 120s." -ForegroundColor Red }

@@ -4,8 +4,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 A local SNI/TLS proxy that lets desktop AI clients (Codex, Claude, ChatGPT, Typeless,
-Tabbit, Kiro, ...) reach their APIs from behind an HTTP corporate proxy that MITMs or
-gates direct access to AI domains.
+Tabbit, Kiro, Qianwen, ...) reach their APIs from behind an HTTP corporate proxy that
+MITMs or gates direct access to AI domains.
 
 ## How it works
 
@@ -24,10 +24,12 @@ host/user/pass via environment variables (see below).
 
 ```
 scripts/
-  sni_proxy.py            # the proxy core (Python): SNI parsing + CONNECT tunneling
-  ai-sni-proxy.ps1        # command wrapper: start/stop/status/test + per-client launchers
-  start-ai-sni-proxy.ps1  # writes hosts entries (admin) and starts sni_proxy.py
-  stop-ai-sni-proxy.ps1   # stops the proxy and removes hosts entries
+  sni_proxy.py              # the proxy core (Python): SNI parsing + CONNECT tunneling
+  ai-sni-proxy.ps1          # command wrapper: start/stop/status/test + per-client launchers
+  start-ai-sni-proxy.ps1    # writes hosts entries (admin) and starts sni_proxy.py
+  stop-ai-sni-proxy.ps1     # stops the proxy and removes hosts entries
+  watchdog-ai-sni-proxy.ps1 # auto-restarts sni_proxy if it dies (120s startup grace)
+  fix-after-travel.py       # one-shot travel self-healing script
 ```
 
 ## Requirements
@@ -107,6 +109,47 @@ SNI, connects to `127.0.0.1:<port>` instead of issuing `CONNECT`. The gateway on
 opaque SSH stream to the VPS, so it cannot inspect or block the upgrade. End-to-end TLS
 still terminates at the real server; the VPS only does dumb TCP forwarding (no certificate
 or MITM needed).
+
+## Travel self-healing
+
+When you travel and your network changes, three things can break:
+
+1. **Corporate proxy exit IP changes** → VPS security group blocks the new IP → SSH tunnel 504
+2. **Hosts file entries missing** → clients connect directly to real IPs → ConnectionRefused
+3. **sni_proxy / watchdog / SSH tunnel down** → no proxy running at all
+
+Run `fix-after-travel.py` once to fix all three:
+
+```powershell
+python fix-after-travel.py
+```
+
+For security group updates, also set:
+
+```powershell
+$env:AI_SNI_PROXY_SG_ID = "<security-group-id>"
+$env:AI_SNI_PROXY_SG_REGION = "la-north-2"
+$env:HW_ACCESS_KEY_ID = "<huawei-cloud-ak>"
+$env:HW_SECRET_ACCESS_KEY = "<huawei-cloud-sk>"
+```
+
+If those are not set, the security group step is skipped (the other steps still run).
+
+## Proxy warning acknowledgment
+
+Many corporate proxies show an AI warning/consent page before allowing access to AI domains.
+`sni_proxy.py` automatically acknowledges these warnings at startup by visiting each
+domain through the proxy, parsing the warning page, and calling the continue endpoint.
+It also re-acknowledges every 5 minutes in the background to prevent session expiry.
+
+If a `CONNECT` attempt returns a warning redirect mid-session, the proxy automatically
+re-acknowledges and retries once.
+
+## Watchdog
+
+`watchdog-ai-sni-proxy.ps1` monitors sni_proxy and restarts it if it dies. It waits
+120 seconds for startup (generous for slow VPN links where the warning self-check takes
+longer). The start script launches the watchdog automatically.
 
 ## License
 
