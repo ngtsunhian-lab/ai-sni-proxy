@@ -30,6 +30,7 @@ scripts/
   stop-ai-sni-proxy.ps1     # stops the proxy and removes hosts entries
   watchdog-ai-sni-proxy.ps1 # auto-restarts sni_proxy if it dies (120s startup grace)
   fix-after-travel.py       # one-shot travel self-healing script
+  set-codex-dns-policy.py   # set Chromium DNS policies for Codex desktop (run once as admin)
 ```
 
 ## Requirements
@@ -144,6 +145,32 @@ It also re-acknowledges every 5 minutes in the background to prevent session exp
 
 If a `CONNECT` attempt returns a warning redirect mid-session, the proxy automatically
 re-acknowledges and retries once.
+
+## Codex desktop DNS policy
+
+Codex desktop is an AppX-packaged Electron app. Launching it with
+`--host-resolver-rules` (to force DNS via the hosts file) requires starting the
+exe directly, which breaks the AppX sandbox ("无法设置管理员沙盒").
+
+Instead, set Chromium enterprise policies that force the app to use the OS DNS
+resolver (which respects the hosts file) and disable DNS-over-HTTPS:
+
+```powershell
+python set-codex-dns-policy.py   # run once as admin (UAC prompt)
+```
+
+This writes to `HKLM\SOFTWARE\Policies\OpenAI\Codex` and
+`HKCU\SOFTWARE\Policies\OpenAI\Codex`:
+
+| Policy | Value | Effect |
+|--------|-------|--------|
+| `BuiltInDnsClientEnabled` | `0` | Use OS DNS resolver → respects hosts file |
+| `DnsOverHttpsMode` | `off` | Disable DNS-over-HTTPS |
+
+These are persistent registry settings — no need to re-run after reboot or
+Codex update. After setting the policies, `ai-sni-proxy codex-desktop` launches
+Codex via normal AppX activation (sandbox works) and traffic flows through the
+SNI proxy.
 
 ## Watchdog
 

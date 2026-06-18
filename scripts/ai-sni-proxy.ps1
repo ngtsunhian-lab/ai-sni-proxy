@@ -260,45 +260,19 @@ function Start-CodexDesktopThroughSni {
     $env:NO_PROXY = "*"
     $env:no_proxy = "*"
 
-    $codexDesktop = $null
+    # DNS policy: Chromium enterprise policies (HKLM/HKCU Policies\OpenAI\Codex) force
+    # BuiltInDnsClientEnabled=0 (use OS DNS → respects hosts file) and DnsOverHttpsMode=off.
+    # This replaces --host-resolver-rules, which required launching the exe directly and
+    # broke the AppX sandbox ("无法设置管理员沙盒").
+    # Run set-codex-dns-policy.py once (as admin) to set these policies.
 
-    $appx = Get-AppxPackage OpenAI.Codex -ErrorAction SilentlyContinue | Select-Object -First 1
-    if ($appx -and $appx.InstallLocation) {
-        $candidate = Join-Path $appx.InstallLocation "app\Codex.exe"
-        if (Test-Path -LiteralPath $candidate) {
-            $codexDesktop = $candidate
-        }
-    }
+    # Resolve the AppId from the installed package (handles version changes automatically).
+    $appx = Get-AppxPackage -Name "OpenAI.Codex" -ErrorAction SilentlyContinue | Select-Object -First 1
+    $appId = if ($appx) { "$($appx.PackageFamilyName)!App" } else { "OpenAI.Codex_2p2nqsd0c76g0!App" }
 
-    if (-not $codexDesktop) {
-        $running = Get-CimInstance Win32_Process |
-            Where-Object { $_.Name -eq "Codex.exe" -and $_.ExecutablePath -like "*\app\Codex.exe" } |
-            Select-Object -First 1
-        if ($running -and $running.ExecutablePath -and (Test-Path -LiteralPath $running.ExecutablePath)) {
-            $codexDesktop = $running.ExecutablePath
-        }
-    }
-
-    if (-not $codexDesktop) {
-        Write-Host "Could not resolve Codex.exe directly. Falling back to Start menu AppID." -ForegroundColor Yellow
-        Start-Process -FilePath "explorer.exe" -ArgumentList "shell:AppsFolder\OpenAI.Codex_2p2nqsd0c76g0!App"
-        return
-    }
-
-    # Ensure Codex sandbox is set up (requires admin; silences "无法设置管理员沙盒" dialog).
-    $sandboxSetup = Join-Path $env:LOCALAPPDATA "OpenAI\Codex\bin\codex-windows-sandbox-setup.exe"
-    if (Test-Path $sandboxSetup) {
-        Start-Process -FilePath $sandboxSetup -Verb RunAs -Wait
-    }
-
-    # host-resolver-rules: force Chromium renderer to use hosts file DNS instead of HTTPDNS/DoH.
-    # Without this, the renderer bypasses hosts and resolves to real IPs → ConnectionRefused.
-    $argString = '--no-proxy-server --disable-quic --disable-http3 --disable-features=UseDnsHttpsSvcbAlpn,DnsOverHttpsUpgrade,BlockInsecurePrivateNetworkRequests,PrivateNetworkAccessSendPreflights,PrivateNetworkAccessRespectPreflightResults,LocalNetworkAccessChecks "--host-resolver-rules=MAP chatgpt.com 127.0.0.1, MAP openai.com 127.0.0.1, MAP api.openai.com 127.0.0.1, MAP api2.openai.com 127.0.0.1, MAP cdn.oaistatic.com 127.0.0.1, MAP oaistatic.com 127.0.0.1, MAP cdn.chatgpt.com 127.0.0.1, MAP ab.chatgpt.com 127.0.0.1, MAP auth0.openai.com 127.0.0.1, MAP oaisidekickupdates.blob.core.windows.net 127.0.0.1, MAP github.com 127.0.0.1, MAP api.github.com 127.0.0.1, MAP codeload.github.com 127.0.0.1, MAP github.githubassets.com 127.0.0.1, MAP raw.githubusercontent.com 127.0.0.1, MAP objects.githubusercontent.com 127.0.0.1, MAP objects-origin.githubusercontent.com 127.0.0.1, MAP release-assets.githubusercontent.com 127.0.0.1, MAP registry.npmjs.org 127.0.0.1"'
-
-    Write-Host "Starting Codex desktop through the local SNI route only..." -ForegroundColor Cyan
-    Write-Host "HTTP_PROXY/HTTPS_PROXY will be cleared for this Codex desktop process." -ForegroundColor Cyan
-    Write-Host "Using --no-proxy-server + --host-resolver-rules for the local SNI route." -ForegroundColor Cyan
-    Start-Process -FilePath $codexDesktop -ArgumentList $argString
+    Write-Host "Starting Codex desktop via AppId: $appId" -ForegroundColor Cyan
+    Write-Host "DNS: Chromium policies force OS DNS resolver (respects hosts file)." -ForegroundColor Cyan
+    Start-Process -FilePath "explorer.exe" -ArgumentList "shell:AppsFolder\$appId"
 }
 
 function Start-TypelessThroughSni {
