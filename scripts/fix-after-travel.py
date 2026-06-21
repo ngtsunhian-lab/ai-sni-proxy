@@ -33,7 +33,8 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 HOSTS_FILE = r"C:\Windows\System32\drivers\etc\hosts"
 HOSTS_MARKER = "# sni-proxy"
 
-# Corporate proxy config (from env, same as sni_proxy.py)
+# Corporate proxy config (from env, same as sni_proxy.py).
+# Recommended: proxybr.huawei.com (other edges blocked by Cloudflare 1010 for AI domains).
 PROXY_HOST = os.environ.get("AI_SNI_PROXY_HOST", "proxy.huawei.com")
 PROXY_PORT = int(os.environ.get("AI_SNI_PROXY_PORT", "8080"))
 PROXY_USER = os.environ["AI_SNI_PROXY_USER"]

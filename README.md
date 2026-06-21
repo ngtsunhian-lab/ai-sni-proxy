@@ -20,11 +20,74 @@ MITMs or gates direct access to AI domains.
 These are **sanitized templates**: no credentials are committed. Configure your own proxy
 host/user/pass via environment variables (see below).
 
+## Proxy selection
+
+**Which corporate proxy edge to use matters.** Cloudflare protects `platform.claude.com`
+and `api.anthropic.com` and blocks connections from known proxy/VPN exit IPs with
+error 1010 ("Access denied").
+
+In the Huawei corporate network, all proxy edges (proxy, proxybr, proxyjp, proxysg,
+proxyca, proxyuk, proxyde) have their exit IPs blocked by Cloudflare. **Direct
+connections** (Node.js or Python with `HTTPS_PROXY` set) through **any** edge get
+HTTP 403.
+
+The SNI proxy's **raw TCP relay** through `proxybr` bypasses Cloudflare's detection.
+This is the key insight: the SNI proxy does a plain `CONNECT` through the corporate
+proxy and then relays raw bytes without interpreting them, which apparently avoids
+the fingerprinting that CF uses to detect proxy exit traffic.
+
+**Recommended config:**
+
+```powershell
+$env:AI_SNI_PROXY_HOST = "proxybr.huawei.com"   # or your equivalent
+```
+
+## ⚠️ Do NOT set HTTPS_PROXY
+
+When `HTTPS_PROXY` is set (in shell env, PowerShell profile, or Windows system proxy),
+Node.js-based clients (Claude Code, Codex CLI) connect **directly** to the proxy,
+bypassing the hosts file entirely. This gets Cloudflare 403 because the direct
+connection carries CF-detectable fingerprints.
+
+The SNI proxy route works differently:
+
+```
+hosts file → 127.0.0.1 → SNI proxy → CONNECT through proxybr → real server
+```
+
+Use the `ai-sni-proxy` wrapper to launch clients — it automatically clears
+`HTTP_PROXY`/`HTTPS_PROXY` for the child process:
+
+```powershell
+ai-sni-proxy claude          # clears proxy env vars, then runs claude
+ai-sni-proxy clear-proxy     # just clears proxy env vars in current shell
+```
+
+If you have `HTTPS_PROXY` set in your PowerShell profile, remove it or guard it
+so it doesn't apply when using the SNI proxy route.
+
+## Netentsec SSL deep inspection
+
+Some corporate gateways (e.g. Netentsec) perform **SSL deep inspection** inside
+`CONNECT` tunnels. After the proxy acknowledges the CONNECT, the gateway reads the
+inner TLS ClientHello SNI and blocks AI domains with a 302 redirect to a warning
+page — even inside tunnels to a VPS IP.
+
+This means **VPS routing** (where the SNI proxy issues `CONNECT <vps-ip>:443`
+instead of `CONNECT <domain>:443`) does **not** work: the gateway inspects the
+inner TLS and blocks it anyway. `VPS_ROUTED_DOMAINS` has been removed from the
+proxy; all domains now route through direct proxybr CONNECT.
+
+The only way to bypass the SSL inspection for WebSocket-blocked domains is an
+SSH tunnel (see below), because the gateway only sees an opaque SSH stream and
+cannot inspect the inner traffic.
+
 ## Contents
 
 ```
 scripts/
   sni_proxy.py              # the proxy core (Python): SNI parsing + CONNECT tunneling
+  ssh_http_connect.py       # SSH ProxyCommand: tunnel SSH through corporate proxy
   ai-sni-proxy.ps1          # command wrapper: start/stop/status/test + per-client launchers
   start-ai-sni-proxy.ps1    # writes hosts entries (admin) and starts sni_proxy.py
   stop-ai-sni-proxy.ps1     # stops the proxy and removes hosts entries
@@ -48,7 +111,7 @@ scripts/
 2. Set the corporate proxy details as environment variables (the proxy reads these):
 
    ```powershell
-   $env:AI_SNI_PROXY_HOST = "proxy.example.com"
+   $env:AI_SNI_PROXY_HOST = "proxybr.huawei.com"   # recommended (see Proxy selection)
    $env:AI_SNI_PROXY_PORT = "8080"
    $env:AI_SNI_PROXY_USER = "<user>"
    $env:AI_SNI_PROXY_PASS = "<password-or-token>"
@@ -93,16 +156,22 @@ same domain works. The CONNECT path cannot recover from this — the gateway see
 `Upgrade` header inside the decrypted tunnel.
 
 Bypass: carry those connections inside an SSH stream to an outside VPS instead of the
-corporate CONNECT path. Run a tunnel mapping the real host to a local port:
+corporate CONNECT path. The SSH stream itself goes through the corporate proxy using
+`ssh_http_connect.py` as a ProxyCommand.
+
+### Example: Qianwen speech/ASR
 
 ```bash
-ssh -L 127.0.0.1:7443:speech-asr.example.com:443 user@vps
+# Start the SSH tunnel (ProxyCommand tunnels SSH through corporate proxy)
+ssh -L 127.0.0.1:7443:speech-asr.qianwen.com:443 \
+    -o ProxyCommand="python ssh_http_connect.py %h %p" \
+    -p 4444 user@vps
 ```
 
-Then tell the proxy to route that SNI to the local tunnel port:
+Then tell the SNI proxy to route that SNI to the local tunnel port:
 
 ```powershell
-$env:AI_SNI_PROXY_TUNNELS = "speech-asr.example.com=7443"
+$env:AI_SNI_PROXY_TUNNELS = "speech-asr.qianwen.com=7443"
 ```
 
 `sni_proxy.py` reads `AI_SNI_PROXY_TUNNELS` (`host=port,host2=port2`) and, for a matching
@@ -110,6 +179,9 @@ SNI, connects to `127.0.0.1:<port>` instead of issuing `CONNECT`. The gateway on
 opaque SSH stream to the VPS, so it cannot inspect or block the upgrade. End-to-end TLS
 still terminates at the real server; the VPS only does dumb TCP forwarding (no certificate
 or MITM needed).
+
+`ssh_http_connect.py` reads the same `AI_SNI_PROXY_HOST/USER/PASS` env vars as
+`sni_proxy.py`, so no extra configuration is needed.
 
 ## Travel self-healing
 

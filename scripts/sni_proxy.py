@@ -28,6 +28,9 @@ logging.basicConfig(
 )
 log = logging.getLogger("sni_proxy")
 
+# Recommended: proxybr.huawei.com (other edges like proxy/proxyjp/proxysg are blocked
+# by Cloudflare 1010 for Anthropic/OpenAI domains). The SNI proxy's raw TCP relay
+# through proxybr bypasses CF's fingerprinting.
 PROXY_HOST = os.environ.get("AI_SNI_PROXY_HOST", "proxy.huawei.com")
 PROXY_PORT = int(os.environ.get("AI_SNI_PROXY_PORT", "8080"))
 PROXY_USER = os.environ["AI_SNI_PROXY_USER"]
@@ -111,6 +114,9 @@ PROXIED_DOMAINS = {
     "modelarts-maas.com",
     # OpenRouter (Anthropic-compatible endpoint for claude-openrouter)
     "openrouter.ai",
+    # Qianwen speech/ASR (WebSocket — needs SSH tunnel; add to hosts so SNI proxy
+    # can route it when AI_SNI_PROXY_TUNNELS is set)
+    "speech-asr.qianwen.com",
 }
 
 # Hosts file entries to add
@@ -177,6 +183,7 @@ HOSTS_ENTRIES = [
     ("prod.tools.shortbread.aws.dev", "127.0.0.1"),
     ("api-ap-southeast-1.modelarts-maas.com", "127.0.0.1"),
     ("openrouter.ai", "127.0.0.1"),
+    ("speech-asr.qianwen.com", "127.0.0.1"),
 ]
 
 HOSTS_FILE = r"C:\Windows\System32\drivers\etc\hosts"
