@@ -139,3 +139,27 @@ do {
 
 if ($up) { Write-Host "SNI proxy listening on 127.0.0.1:443." -ForegroundColor Green }
 else { Write-Host "SNI proxy did NOT start listening within 120s." -ForegroundColor Red }
+
+# Start SSH tunnel for Qianwen voice (speech-asr.qianwen.com WebSocket)
+# The tunnel is needed because Netentsec blocks WebSocket Upgrade inside CONNECT tunnels.
+$TunnelScript = Join-Path $Root "qianwen-voice-tunnel.sh"
+$GitBash = "D:\Program Files\Git\usr\bin\bash.exe"
+$TunnelPort = 7443
+
+$tunnelUp = Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort $TunnelPort -State Listen -ErrorAction SilentlyContinue
+if ($tunnelUp) {
+    Write-Host "SSH tunnel already listening on 127.0.0.1:$TunnelPort." -ForegroundColor Green
+} elseif (Test-Path $TunnelScript) {
+    # Convert Windows path to MSYS path for bash
+    $msysPath = "/" + $TunnelScript.Substring(0,1).ToLower() + $TunnelScript.Substring(2).Replace("\", "/")
+    Start-Process -FilePath $GitBash -ArgumentList "-lc", $msysPath -WindowStyle Hidden
+    $tunnelDeadline = (Get-Date).AddSeconds(20)
+    do {
+        Start-Sleep -Milliseconds 500
+        $tunnelUp = Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort $TunnelPort -State Listen -ErrorAction SilentlyContinue
+    } while (-not $tunnelUp -and (Get-Date) -lt $tunnelDeadline)
+    if ($tunnelUp) { Write-Host "SSH tunnel listening on 127.0.0.1:$TunnelPort." -ForegroundColor Green }
+    else { Write-Host "SSH tunnel did NOT start within 20s." -ForegroundColor Yellow }
+} else {
+    Write-Host "No qianwen-voice-tunnel.sh found; skipping SSH tunnel." -ForegroundColor Yellow
+}
