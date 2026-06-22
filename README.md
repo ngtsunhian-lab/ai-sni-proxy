@@ -163,10 +163,18 @@ corporate CONNECT path. The SSH stream itself goes through the corporate proxy u
 
 ```bash
 # Start the SSH tunnel (ProxyCommand tunnels SSH through corporate proxy)
+# ServerAliveInterval keeps the tunnel alive through idle proxy timeouts.
 ssh -L 127.0.0.1:7443:speech-asr.qianwen.com:443 \
     -o ProxyCommand="python ssh_http_connect.py %h %p" \
+    -o ServerAliveInterval=15 \
+    -o ServerAliveCountMax=3 \
+    -o ExitOnForwardFailure=yes \
     -p 4444 user@vps
 ```
+
+Also set `ClientAliveInterval 30` in the VPS `/etc/ssh/sshd_config` so both
+ends send keepalive probes. Without this, corporate proxy idle timeouts
+silently drop the SSH stream, causing repeated tunnel disconnects.
 
 Then tell the SNI proxy to route that SNI to the local tunnel port:
 
