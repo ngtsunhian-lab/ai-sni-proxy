@@ -7,6 +7,9 @@ if (-not (Test-Path $python)) { $python = "python.exe" }
 $stdoutLog   = Join-Path $root "sni_proxy.out.log"
 $stderrLog   = Join-Path $root "sni_proxy.err.log"
 $watchdogLog = Join-Path $root "sni_proxy.watchdog.log"
+$gitBash             = "D:\Program Files\Git\usr\bin\bash.exe"
+$chatgptTunnelScript = Join-Path $root "chatgpt-tunnel.sh"
+$qianwenTunnelScript = Join-Path $root "qianwen-voice-tunnel.sh"
 
 function wlog($msg) {
     $line = "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') $msg"
@@ -42,6 +45,23 @@ function restart-proxy {
     else      { wlog "WARNING: sni_proxy failed to come up after restart" }
 }
 
+# Relaunch an SSH-tunnel supervisor if its bash while-loop process has been killed.
+# Watch the supervisor PROCESS, not the listen port: the loop self-restarts its ssh
+# within 3 s of a drop, so the port is briefly down every ~60 s when the corporate
+# gateway reaps the long-lived tunnel — that is normal and must not trigger a relaunch.
+# NOTE: run this watchdog ELEVATED (the start script launches it via RunAs). A
+# non-elevated watchdog cannot read the CommandLine of elevated tunnel processes
+# (reads as null), so it would never match them and would spawn endless duplicates.
+function ensure-tunnel($scriptPath, $matchPattern, $label) {
+    if (-not (Test-Path $gitBash) -or -not (Test-Path $scriptPath)) { return }
+    $sup = Get-CimInstance Win32_Process |
+        Where-Object { $_.Name -eq "bash.exe" -and $_.CommandLine -and $_.CommandLine -like $matchPattern }
+    if ($sup) { return }
+    wlog "$label tunnel supervisor down — relaunching"
+    $msys = "/" + $scriptPath.Substring(0, 1).ToLower() + ($scriptPath.Substring(2) -replace "\\", "/")
+    Start-Process -FilePath $gitBash -ArgumentList "-lc", $msys -WindowStyle Hidden
+}
+
 wlog "Watchdog started (checking every 30 s)"
 
 while ($true) {
@@ -53,6 +73,9 @@ while ($true) {
         wlog "sni_proxy down (proc=$($null -ne $proc) port443=$($null -ne $port)) — restarting"
         restart-proxy
     }
+
+    ensure-tunnel $chatgptTunnelScript "*chatgpt-tunnel*" "ChatGPT"
+    ensure-tunnel $qianwenTunnelScript "*qianwen-voice-tunnel*" "Qianwen voice"
 
     Start-Sleep -Seconds 30
 }

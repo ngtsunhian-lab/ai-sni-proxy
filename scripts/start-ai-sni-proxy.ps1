@@ -163,3 +163,18 @@ if ($tunnelUp) {
 } else {
     Write-Host "No qianwen-voice-tunnel.sh found; skipping SSH tunnel." -ForegroundColor Yellow
 }
+
+# Kill any stale watchdog, then launch a fresh one. This script already runs elevated
+# (RunAs above), so the watchdog inherits admin — required so it can read the CommandLine
+# of the elevated sni_proxy / tunnel processes it guards (a non-elevated watchdog reads
+# those as null, never matches them, and spawns endless duplicates).
+$WatchdogScript = Join-Path $Root "watchdog-ai-sni-proxy.ps1"
+if (Test-Path $WatchdogScript) {
+    Get-CimInstance Win32_Process |
+        Where-Object { $_.CommandLine -and $_.CommandLine -like "*watchdog-ai-sni-proxy*" } |
+        ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+    Start-Process -FilePath "powershell.exe" `
+        -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File", "`"$WatchdogScript`"" `
+        -WindowStyle Hidden
+    Write-Host "Watchdog started (restarts sni_proxy + tunnels if they die)." -ForegroundColor Green
+}
