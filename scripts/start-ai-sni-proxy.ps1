@@ -120,6 +120,54 @@ Set-Content -Path $HostsFile -Value $allLines -Encoding UTF8
 ipconfig /flushdns | Out-Null
 Write-Host "Added $($Entries.Count) hosts entries and flushed DNS." -ForegroundColor Green
 
+# --- Windows excluded-port-range guard ---------------------------------------
+# Hyper-V/WSL/Docker (via the winnat service) dynamically reserve blocks of TCP
+# ports as "excluded"; an explicit bind() to such a port fails with WSAEACCES
+# (10013, "Permission denied"). On 2026-07-31 this killed every SSH tunnel
+# backend in a crash loop while a local forwarder stayed up, masking the real
+# failure with a false green. The reservations are dynamic and shift on every
+# winnat restart, so check every startup: if any port we bind is currently
+# excluded, reset the dynamic TCP range to the IANA standard (49152-65535, so
+# Hyper-V can only reserve high ports) and restart winnat to drop the conflict.
+# No-op on a clean system. Requires admin (this script self-elevates above).
+function Get-ExcludedTcpPortRanges {
+    foreach ($line in (netsh int ipv4 show excludedportrange protocol=tcp 2>$null)) {
+        if ($line -match '^\s*(\d+)\s+(\d+)') {
+            [pscustomobject]@{ Start = [int]$matches[1]; End = [int]$matches[2] }
+        }
+    }
+}
+$GuardPorts = @(443, 7443)  # sni_proxy listener + Qianwen voice SSH tunnel
+if ($env:AI_SNI_PROXY_TUNNELS) {
+    foreach ($item in ($env:AI_SNI_PROXY_TUNNELS -split ',')) {
+        $p = ($item -split '=')[-1]
+        if ($p -match '^\d+$') { $GuardPorts += [int]$p }
+    }
+}
+$GuardPorts = $GuardPorts | Select-Object -Unique
+$conflicts = foreach ($p in $GuardPorts) {
+    foreach ($r in (Get-ExcludedTcpPortRanges)) {
+        if ($p -ge $r.Start -and $p -le $r.End) { $p; break }
+    }
+}
+if ($conflicts) {
+    Write-Host "Bind port(s) $($conflicts -join ', ') are in a Windows excluded TCP range (Hyper-V/winnat). Remediating..." -ForegroundColor Yellow
+    try { net stop winnat 2>&1 | Out-Host } catch { Write-Host "net stop winnat: $($_.Exception.Message)" -ForegroundColor Yellow }
+    try { netsh int ipv4 set dynamic tcp start=49152 num=16384 2>&1 | Out-Host } catch { Write-Host "set dynamic tcp: $($_.Exception.Message)" -ForegroundColor Yellow }
+    try { net start winnat 2>&1 | Out-Host } catch { Write-Host "net start winnat: $($_.Exception.Message)" -ForegroundColor Yellow }
+    Start-Sleep -Seconds 2
+    $stillBad = foreach ($p in $conflicts) {
+        foreach ($r in (Get-ExcludedTcpPortRanges)) {
+            if ($p -ge $r.Start -and $p -le $r.End) { $p; break }
+        }
+    }
+    if ($stillBad) {
+        Write-Host "WARNING: port(s) $($stillBad -join ', ') still excluded after remediation; listeners may fail to bind. Manual fix: net stop winnat; netsh int ipv4 set dynamic tcp start=49152 num=16384; net start winnat" -ForegroundColor Red
+    } else {
+        Write-Host "Excluded range cleared; bind ports are free." -ForegroundColor Green
+    }
+}
+
 # Stop existing sni_proxy
 Get-CimInstance Win32_Process |
     Where-Object { $_.CommandLine -and $_.CommandLine -like "*sni_proxy.py*" } |

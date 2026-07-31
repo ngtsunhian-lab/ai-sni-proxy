@@ -258,6 +258,25 @@ SNI proxy.
 120 seconds for startup (generous for slow VPN links where the warning self-check takes
 longer). The start script launches the watchdog automatically.
 
+## Windows excluded TCP port ranges
+
+Hyper-V/WSL/Docker (via the `winnat` service) dynamically reserve blocks of TCP
+ports as "excluded"; binding one of those ports fails with `WSAEACCES` (10013,
+"Permission denied"). If a reserved range happens to cover a port this script
+binds (the `443` listener, the `7443` SSH tunnel, or any port in
+`AI_SNI_PROXY_TUNNELS`), `start-ai-sni-proxy.ps1` detects it on startup and
+self-heals: it resets the dynamic TCP range to the IANA standard
+(`49152–65535`, so Hyper-V can only reserve high ports) and restarts `winnat`
+to drop the conflicting reservation. No-op on a clean system.
+
+Manual one-time fix (admin PowerShell), if you prefer to set it permanently:
+
+```powershell
+net stop winnat
+netsh int ipv4 set dynamic tcp start=49152 num=16384
+net start winnat
+```
+
 ## License
 
 [MIT](LICENSE)
