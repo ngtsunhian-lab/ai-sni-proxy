@@ -164,7 +164,8 @@ function Ensure-SniProxy {
     # the stop window won it left hosts empty of SNI entries, breaking every proxied domain.
     # start is idempotent (rewrites hosts, kills+restarts sni_proxy, restarts tunnel/watchdog),
     # so stop is redundant. -Wait makes the recheck below see the real final state.
-    $startArgs = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "`"$startScript`"") + $Rest
+    $startArgs = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "`"$startScript`"")
+    if ($Rest) { $startArgs += $Rest }   # avoid `+ $null`: with empty $Rest it appends a null element that -ArgumentList's ValidateNotNullOrEmpty rejects
     Start-Process powershell.exe -Verb RunAs -Wait -ArgumentList $startArgs
 
     Write-Host "Rechecking local SNI proxy health..." -ForegroundColor Cyan
@@ -409,7 +410,8 @@ switch ($Command) {
     "restart" {
         # Single elevated start with -Wait (see Ensure-SniProxy for the race rationale).
         # start already kills+restarts sni_proxy and rewrites hosts, so it is a full restart.
-        $startArgs = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "`"$startScript`"") + $Rest
+        $startArgs = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "`"$startScript`"")
+        if ($Rest) { $startArgs += $Rest }   # avoid `+ $null`: with empty $Rest it appends a null element that -ArgumentList's ValidateNotNullOrEmpty rejects
         Start-Process powershell.exe -Verb RunAs -Wait -ArgumentList $startArgs
     }
     "ensure" {
