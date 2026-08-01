@@ -113,9 +113,10 @@ $Entries = @(
 )
 
 $content = Get-Content $HostsFile -Raw -Encoding UTF8
-$lines = $content -split "`r?`n" | Where-Object { $_ -notmatch [regex]::Escape($Marker) }
+$lines = @($content -split "`r?`n" | Where-Object { $_ -notmatch [regex]::Escape($Marker) })
 $allLines = $lines + $Entries
-# Write each line separately to avoid the single-line bug with -join + -NoNewline
+# Force $lines to an array: a single-line pipeline yields a scalar string, and
+# `string + array` joins with spaces into one line where the first '#' comments out the rest.
 Set-Content -Path $HostsFile -Value $allLines -Encoding UTF8
 ipconfig /flushdns | Out-Null
 Write-Host "Added $($Entries.Count) hosts entries and flushed DNS." -ForegroundColor Green
