@@ -53,6 +53,7 @@ $Entries = @(
     "127.0.0.1 claude.ai $Marker",
     "127.0.0.1 claude.com $Marker",
     "127.0.0.1 a.claude.ai $Marker",
+    "127.0.0.1 api.claude.ai $Marker",
     "127.0.0.1 assets.claude.ai $Marker",
     "127.0.0.1 assets-proxy.anthropic.com $Marker",
     "127.0.0.1 a-cdn.anthropic.com $Marker",
@@ -95,6 +96,9 @@ $Entries = @(
     "127.0.0.1 speech-asr.qianwen.com $Marker",
     "127.0.0.1 userver.upaas.qianwen.com $Marker",
     "127.0.0.1 voice-command.qianwen.com $Marker",
+    "127.0.0.1 passport.qianwen.com $Marker",
+    "127.0.0.1 workspace.qianwen.com $Marker",
+    "127.0.0.1 workspace-m.qianwen.com $Marker",
     "127.0.0.1 tongyi.aliyun.com $Marker",
     "127.0.0.1 qianwen.aliyun.com $Marker",
     "127.0.0.1 dashscope.aliyuncs.com $Marker",
@@ -106,10 +110,17 @@ $Entries = @(
     "127.0.0.1 gw.alicdn.com $Marker",
     "127.0.0.1 img.alicdn.com $Marker",
     "127.0.0.1 assets.alicdn.com $Marker",
+    # Alibaba SSO login (Qianwen app login flow)
+    "127.0.0.1 havanalogin.taobao.com $Marker",
     # Huawei Cloud ModelArts MaaS
     "127.0.0.1 api-ap-southeast-1.modelarts-maas.com $Marker",
     # OpenRouter
-    "127.0.0.1 openrouter.ai $Marker"
+    "127.0.0.1 openrouter.ai $Marker",
+    # WorkBuddy AI
+    "127.0.0.1 www.workbuddy.ai $Marker",
+    # CodeBuddy (plugin marketplace downloads + SSO)
+    "127.0.0.1 download.codebuddy.cn $Marker",
+    "127.0.0.1 tencent.sso.codebuddy.cn $Marker"
 )
 
 $content = Get-Content $HostsFile -Raw -Encoding UTF8

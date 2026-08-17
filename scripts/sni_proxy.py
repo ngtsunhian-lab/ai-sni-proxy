@@ -63,6 +63,8 @@ PROXIED_DOMAINS = {
     "objects-origin.githubusercontent.com",
     "release-assets.githubusercontent.com",
     "registry.npmjs.org",
+    "pypi.org",
+    "files.pythonhosted.org",
     # Tabbit
     "tabbitbrowser.com",
     "cdn.tabbitbrowser.com",
@@ -75,6 +77,7 @@ PROXIED_DOMAINS = {
     "claude.ai",
     "claude.com",
     "a.claude.ai",
+    "api.claude.ai",
     "assets.claude.ai",
     "assets-proxy.anthropic.com",
     "a-cdn.anthropic.com",
@@ -110,6 +113,8 @@ PROXIED_DOMAINS = {
     "qianwen.com",
     # Alibaba CDN (needed for Qianwen app JS/CSS)
     "alicdn.com",
+    # Alibaba SSO login (Qianwen app login flow)
+    "havanalogin.taobao.com",
     # Huawei Cloud ModelArts MaaS (Anthropic-compatible endpoint for opencode)
     "modelarts-maas.com",
     # OpenRouter (Anthropic-compatible endpoint for claude-openrouter)
@@ -117,6 +122,10 @@ PROXIED_DOMAINS = {
     # Qianwen speech/ASR (WebSocket — needs SSH tunnel; add to hosts so SNI proxy
     # can route it when AI_SNI_PROXY_TUNNELS is set)
     "speech-asr.qianwen.com",
+    # WorkBuddy AI (API + Centrifugo websocket + traces)
+    "workbuddy.ai",
+    # CodeBuddy (plugin marketplace downloads + SSO)
+    "codebuddy.cn",
 }
 
 # Hosts file entries to add
@@ -143,6 +152,8 @@ HOSTS_ENTRIES = [
     ("objects-origin.githubusercontent.com", "127.0.0.1"),
     ("release-assets.githubusercontent.com", "127.0.0.1"),
     ("registry.npmjs.org", "127.0.0.1"),
+    ("pypi.org", "127.0.0.1"),
+    ("files.pythonhosted.org", "127.0.0.1"),
     ("tabbitbrowser.com", "127.0.0.1"),
     ("web.tabbitbrowser.com", "127.0.0.1"),
     ("cdn.tabbitbrowser.com", "127.0.0.1"),
@@ -154,6 +165,7 @@ HOSTS_ENTRIES = [
     ("claude.ai", "127.0.0.1"),
     ("claude.com", "127.0.0.1"),
     ("a.claude.ai", "127.0.0.1"),
+    ("api.claude.ai", "127.0.0.1"),
     ("assets.claude.ai", "127.0.0.1"),
     ("assets-proxy.anthropic.com", "127.0.0.1"),
     ("a-cdn.anthropic.com", "127.0.0.1"),
@@ -184,6 +196,15 @@ HOSTS_ENTRIES = [
     ("api-ap-southeast-1.modelarts-maas.com", "127.0.0.1"),
     ("openrouter.ai", "127.0.0.1"),
     ("speech-asr.qianwen.com", "127.0.0.1"),
+    ("passport.qianwen.com", "127.0.0.1"),
+    ("workspace.qianwen.com", "127.0.0.1"),
+    ("workspace-m.qianwen.com", "127.0.0.1"),
+    ("havanalogin.taobao.com", "127.0.0.1"),
+    # WorkBuddy AI
+    ("www.workbuddy.ai", "127.0.0.1"),
+    # CodeBuddy (plugin marketplace + SSO)
+    ("download.codebuddy.cn", "127.0.0.1"),
+    ("tencent.sso.codebuddy.cn", "127.0.0.1"),
 ]
 
 HOSTS_FILE = r"C:\Windows\System32\drivers\etc\hosts"
@@ -496,6 +517,7 @@ async def acknowledge_proxy_warning():
         "anthropic.com",
         "api.anthropic.com",
         "claude.ai",
+        "api.claude.ai",
         "api.typeless.com",
         "typeless-static.com",
         "app.kiro.dev",
