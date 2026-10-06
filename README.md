@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 A local SNI/TLS proxy that lets desktop AI clients (Codex, Claude, ChatGPT, Typeless,
-Tabbit, Kiro, Qianwen, ...) reach their APIs from behind an HTTP corporate proxy that
+Tabbit, Kiro, Qianwen, Warp, Cursor CLI, Qoder, CatPaw, WorkBuddy, CodeBuddy, KroWork, ...) reach their APIs from behind an HTTP corporate proxy that
 MITMs or gates direct access to AI domains.
 
 ## How it works

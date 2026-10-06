@@ -28,6 +28,11 @@ $Entries = @(
     "127.0.0.1 oaistatic.com $Marker",
     "127.0.0.1 cdn.chatgpt.com $Marker",
     "127.0.0.1 ab.chatgpt.com $Marker",
+    "127.0.0.1 ws.chatgpt.com $Marker",
+    "127.0.0.1 persistent.oaistatic.com $Marker",
+    "127.0.0.1 auth.openai.com $Marker",
+    "127.0.0.1 chat.openai.com $Marker",
+    "127.0.0.1 cdn.auth0.com $Marker",
     "127.0.0.1 auth0.openai.com $Marker",
     "127.0.0.1 oaisidekickupdates.blob.core.windows.net $Marker",
     # GitHub
@@ -120,7 +125,47 @@ $Entries = @(
     "127.0.0.1 www.workbuddy.ai $Marker",
     # CodeBuddy (plugin marketplace downloads + SSO)
     "127.0.0.1 download.codebuddy.cn $Marker",
-    "127.0.0.1 tencent.sso.codebuddy.cn $Marker"
+    "127.0.0.1 tencent.sso.codebuddy.cn $Marker",
+    # Warp Terminal
+    "127.0.0.1 warp.dev $Marker",
+    "127.0.0.1 app.warp.dev $Marker",
+    "127.0.0.1 rtc.app.warp.dev $Marker",
+    "127.0.0.1 sessions.app.warp.dev $Marker",
+    "127.0.0.1 oz.warp.dev $Marker",
+    "127.0.0.1 releases.warp.dev $Marker",
+    # CatPaw (Meituan AI agent desktop app)
+    "127.0.0.1 catx.meituan.com $Marker",
+    "127.0.0.1 catpaw-api.meituan.net $Marker",
+    "127.0.0.1 ai.catpaw.meituan.com $Marker",
+    "127.0.0.1 nocode.cn $Marker",
+    "127.0.0.1 catx.nocode.cn $Marker",
+    # KroWork AI agent
+    "127.0.0.1 krowork.com $Marker",
+    "127.0.0.1 www.krowork.com $Marker",
+    "127.0.0.1 kro.work $Marker",
+    "127.0.0.1 www.kro.work $Marker",
+    # Qoder CLI (global edition). Device-login polls openapi.qoder.sh; the agent
+    # session runs on api1/2/3 + center. Static assets live on Alibaba OSS.
+    "127.0.0.1 qoder.com $Marker",
+    "127.0.0.1 www.qoder.com $Marker",
+    "127.0.0.1 docs.qoder.com $Marker",
+    "127.0.0.1 download.qoder.com $Marker",
+    "127.0.0.1 openapi.qoder.sh $Marker",
+    "127.0.0.1 api1.qoder.sh $Marker",
+    "127.0.0.1 api2.qoder.sh $Marker",
+    "127.0.0.1 api3.qoder.sh $Marker",
+    "127.0.0.1 center.qoder.sh $Marker",
+    "127.0.0.1 qoder-ide.oss-accelerate.aliyuncs.com $Marker",
+    "127.0.0.1 qoder-ide.oss-ap-southeast-1.aliyuncs.com $Marker",
+    # QoderWork skill-market packages and CLI downloads. The market listing API
+    # lives on qoder.sh, but the .zip payloads come from these OSS buckets.
+    "127.0.0.1 qoder-skills.oss-accelerate.aliyuncs.com $Marker",
+    "127.0.0.1 qoder-cli.oss-accelerate.aliyuncs.com $Marker",
+    # Cursor Agent CLI
+    "127.0.0.1 cursor.com $Marker",
+    "127.0.0.1 www.cursor.com $Marker",
+    "127.0.0.1 api2.cursor.sh $Marker",
+    "127.0.0.1 download.cursor.sh $Marker"
 )
 
 $content = Get-Content $HostsFile -Raw -Encoding UTF8

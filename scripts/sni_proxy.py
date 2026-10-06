@@ -53,6 +53,11 @@ PROXIED_DOMAINS = {
     "auth.openai.com",
     "chat.openai.com",
     "cdn.auth0.com",
+    "cdn.openai.com",
+    "sentinel.openai.com",
+    "features.openai.com",
+    "config.openai.com",
+    "auth-cdn.oaistatic.com",
     # GitHub
     "github.com",
     "api.github.com",
@@ -122,6 +127,23 @@ PROXIED_DOMAINS = {
     # Qianwen speech/ASR (WebSocket — needs SSH tunnel; add to hosts so SNI proxy
     # can route it when AI_SNI_PROXY_TUNNELS is set)
     "speech-asr.qianwen.com",
+    # Warp Terminal (login/graphql/rtc)
+    "warp.dev",
+    # CatPaw (Meituan AI agent desktop app: auth + telemetry + agent stream + nocode API)
+    "catx.meituan.com",
+    "catpaw-api.meituan.net",
+    "ai.catpaw.meituan.com",
+    "nocode.cn",
+    "catx.nocode.cn",
+    # KroWork AI agent (marketing site + app, two domains for same product)
+    "krowork.com",
+    "kro.work",
+    # Qoder CLI (global edition): login/site on qoder.com, all APIs on qoder.sh
+    "qoder.sh",
+    "qoder.com",
+    # Cursor Agent CLI (login page on cursor.com, API/auth on cursor.sh)
+    "cursor.com",
+    "cursor.sh",
     # WorkBuddy AI (API + Centrifugo websocket + traces)
     "workbuddy.ai",
     # CodeBuddy (plugin marketplace downloads + SSO)
@@ -142,6 +164,13 @@ HOSTS_ENTRIES = [
     ("auth.openai.com", "127.0.0.1"),
     ("chat.openai.com", "127.0.0.1"),
     ("cdn.auth0.com", "127.0.0.1"),
+    ("cdn.openai.com", "127.0.0.1"),
+    ("sentinel.openai.com", "127.0.0.1"),
+    ("features.openai.com", "127.0.0.1"),
+    ("config.openai.com", "127.0.0.1"),
+    ("auth-cdn.oaistatic.com", "127.0.0.1"),
+    ("persistent.oaistatic.com", "127.0.0.1"),
+    ("ws.chatgpt.com", "127.0.0.1"),
     ("oaisidekickupdates.blob.core.windows.net", "127.0.0.1"),
     ("github.com", "127.0.0.1"),
     ("api.github.com", "127.0.0.1"),
@@ -196,6 +225,46 @@ HOSTS_ENTRIES = [
     ("api-ap-southeast-1.modelarts-maas.com", "127.0.0.1"),
     ("openrouter.ai", "127.0.0.1"),
     ("speech-asr.qianwen.com", "127.0.0.1"),
+    # Warp Terminal
+    ("warp.dev", "127.0.0.1"),
+    ("app.warp.dev", "127.0.0.1"),
+    ("rtc.app.warp.dev", "127.0.0.1"),
+    ("sessions.app.warp.dev", "127.0.0.1"),
+    ("oz.warp.dev", "127.0.0.1"),
+    ("releases.warp.dev", "127.0.0.1"),
+    # CatPaw (Meituan AI agent desktop app)
+    ("catx.meituan.com", "127.0.0.1"),
+    ("catpaw-api.meituan.net", "127.0.0.1"),
+    ("ai.catpaw.meituan.com", "127.0.0.1"),
+    ("nocode.cn", "127.0.0.1"),
+    ("catx.nocode.cn", "127.0.0.1"),
+    # KroWork AI agent
+    ("krowork.com", "127.0.0.1"),
+    ("www.krowork.com", "127.0.0.1"),
+    ("kro.work", "127.0.0.1"),
+    ("www.kro.work", "127.0.0.1"),
+    # Qoder CLI (global edition). Device-login polls openapi.qoder.sh; the agent
+    # session runs on api1/2/3 + center. Static assets live on Alibaba OSS.
+    ("qoder.com", "127.0.0.1"),
+    ("www.qoder.com", "127.0.0.1"),
+    ("docs.qoder.com", "127.0.0.1"),
+    ("download.qoder.com", "127.0.0.1"),
+    ("openapi.qoder.sh", "127.0.0.1"),
+    ("api1.qoder.sh", "127.0.0.1"),
+    ("api2.qoder.sh", "127.0.0.1"),
+    ("api3.qoder.sh", "127.0.0.1"),
+    ("center.qoder.sh", "127.0.0.1"),
+    ("qoder-ide.oss-accelerate.aliyuncs.com", "127.0.0.1"),
+    ("qoder-ide.oss-ap-southeast-1.aliyuncs.com", "127.0.0.1"),
+    # QoderWork skill-market packages and CLI downloads. The market listing API
+    # lives on qoder.sh, but the .zip payloads come from these OSS buckets.
+    ("qoder-skills.oss-accelerate.aliyuncs.com", "127.0.0.1"),
+    ("qoder-cli.oss-accelerate.aliyuncs.com", "127.0.0.1"),
+    # Cursor Agent CLI
+    ("cursor.com", "127.0.0.1"),
+    ("www.cursor.com", "127.0.0.1"),
+    ("api2.cursor.sh", "127.0.0.1"),
+    ("download.cursor.sh", "127.0.0.1"),
     ("passport.qianwen.com", "127.0.0.1"),
     ("workspace.qianwen.com", "127.0.0.1"),
     ("workspace-m.qianwen.com", "127.0.0.1"),
@@ -517,6 +586,8 @@ async def acknowledge_proxy_warning():
         "anthropic.com",
         "api.anthropic.com",
         "claude.ai",
+        "platform.claude.com",
+        "console.anthropic.com",
         "api.claude.ai",
         "api.typeless.com",
         "typeless-static.com",
@@ -526,6 +597,7 @@ async def acknowledge_proxy_warning():
         "prod.us-east-1.telemetry.desktop.kiro.dev",
         "q.us-east-1.amazonaws.com",
         "www.qianwen.com",
+        "passport.qianwen.com",
         "tongyi.aliyun.com",
         "dashscope.aliyuncs.com",
         "nls-gateway.aliyuncs.com",
@@ -534,6 +606,21 @@ async def acknowledge_proxy_warning():
         "voice-command.qianwen.com",
         "userver.upaas.qianwen.com",
         "openrouter.ai",
+        "api-ap-southeast-1.modelarts-maas.com",
+        "raw.githubusercontent.com",
+        "www.workbuddy.ai",
+        "download.codebuddy.cn",
+        "tencent.sso.codebuddy.cn",
+        "havanalogin.taobao.com",
+        "catx.meituan.com",
+        "catpaw-api.meituan.net",
+        "ai.catpaw.meituan.com",
+        "nocode.cn",
+        "catx.nocode.cn",
+        "krowork.com",
+        "kro.work",
+        "cursor.com",
+        "api2.cursor.sh",
     ]
     ack_url_pattern = re.compile(r"sessionid=(\w+).*?pid=(\d+).*?uid=(\d+)")
     hidden_input_pattern = re.compile(
